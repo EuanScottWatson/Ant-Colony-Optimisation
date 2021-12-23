@@ -3,17 +3,18 @@ from pygame.locals import *
 from random import random, choice
 from copy import deepcopy
 import numpy as np
+from datetime import date, datetime
 
 
 class ACO:
-    def __init__(self, w, h, ants=1, points=25):
-        self.alpha = 4
-        self.beta = 2
+    def __init__(self, w, h, ants=1, points=25, alpha=4, beta=2, diffusion_rate=0.1):
+        self.alpha = alpha
+        self.beta = beta
+        self.diffusion_rate = diffusion_rate
 
         self.ants = ants
         self.distances = [0 for _ in range(ants)]
-        self.points = [(w * random(), h * random()) for _ in range(points)]
-        # self.points = [(568.7634782891314, 364.6439100211969), (422.5507894165482, 322.08125997417864), (479.1514906752393, 414.6436176612771), (600.2284341277754, 213.75552764739527), (469.08730651810333, 506.309430537065), (552.0324098368213, 298.6652695991528), (410.7647007057513, 6.157219002521025), (138.83212959054836, 89.38420309002717), (67.86017862377804, 244.71224029775425), (605.5312359070574, 233.1545470297325)]
+        self.points = [(w * random(), (h - 50) * random() + 50) for _ in range(points)]
         self.pheremones = np.zeros((points, points))
 
         self.path = [[choice(self.points)] for _ in range(ants)]
@@ -24,14 +25,23 @@ class ACO:
         self.best_path = None
         self.best_distance = float('inf')
         self.generation = 1
+        self.time = datetime.now()
+
+        self.font = pygame.font.SysFont('Comic Sans MS', 20)
 
     def display(self, screen):
+        delta = round((datetime.now() - self.time).total_seconds(), 3)
+
+        gen = self.font.render('Generation {0}'.format(self.generation), False, (0, 0, 0))
+        dist = self.font.render('Best Distance: {0}'.format(round(self.best_distance, 2)), False, (0, 0, 0))
+        time = self.font.render('Time Elapsed (s): {0}'.format(delta), False, (0, 0, 0))
+
+        screen.blit(gen, (25, 10))
+        screen.blit(dist, (200, 10))
+        screen.blit(time, (445, 10))
+
         for p in self.points:
             pygame.draw.circle(screen, (0, 0, 0), (p[0], p[1]), 5, width=2)
-        
-        # for i, path in enumerate(self.path):
-        #     if len(path) > 2 and (i == np.argmin(self.distances) or not all(self.distances)):
-        #         pygame.draw.lines(screen, (0, 0, 0), False, path, 2)
 
         if self.best_path:
             pygame.draw.lines(screen, (0, 0, 0), False, self.best_path, 2)
@@ -62,9 +72,9 @@ class ACO:
             self.reset()
 
     def reset(self):
-        if (d := np.argmin(self.distances)) < self.best_distance:
-            self.best_distance = d
-            self.best_path = self.path[d]
+        if (min(self.distances)) < self.best_distance:
+            self.best_distance = min(self.distances)
+            self.best_path = self.path[np.argmin(self.distances)]
             print("Generation: {0}:\n\tAnt no. {1} found a path of distance of {2} km"
                 .format(self.generation, np.argmin(self.distances), round(min(self.distances), 2))
             )
@@ -77,6 +87,10 @@ class ACO:
         self.generation += 1
 
     def generate_pheremones(self):
+        for x in range(len(self.pheremones)):
+            for y in range(len(self.pheremones)):
+                self.pheremones[x][y] *= (1 - self.diffusion_rate)
+
         sorted_dists = sorted(self.distances, reverse=True)
         for ant in range(self.ants):
             path = zip(self.path[ant], self.path[ant][1:])
@@ -101,7 +115,7 @@ class ACO:
         return probabilities
 
     def distance(self, a, b):
-        return np.linalg.norm(np.array(a) - np.array(b))
+        return np.linalg.norm(np.array(a) / 10 - np.array(b) / 10)
 
     def traverse(self, ant):
         if len(self.to_visit[ant]) > 0:
@@ -122,13 +136,13 @@ def main():
 
     os.environ['SDL_VIDEO_CENTERED'] = "True"
 
-    width, height = 650, 650
+    width, height = 1000, 800
 
     screen = pygame.display.set_mode((width, height))
 
     done = False
     clock = pygame.time.Clock()
-    aco = ACO(width, height, ants=50, points=25)
+    aco = ACO(width, height, ants=50, points=50)
 
     while not done:
         done = aco.events()
