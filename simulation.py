@@ -3,19 +3,20 @@ from pygame.locals import *
 from random import random, choice
 from copy import deepcopy
 import numpy as np
-from datetime import date, datetime
+from datetime import datetime
+import sys
 
 
 class ACO:
-    def __init__(self, w, h, ants=1, points=25, alpha=4, beta=2, diffusion_rate=0.1):
+    def __init__(self, w, h, ants=10, points=25, alpha=4, beta=2, diffusion_rate=0.1):
         self.alpha = alpha
         self.beta = beta
         self.diffusion_rate = diffusion_rate
 
         self.ants = ants
         self.distances = [0 for _ in range(ants)]
-        self.points = [(w * random(), (h - 50) * random() + 50) for _ in range(points)]
-        self.pheremones = np.zeros((points, points))
+        self.points = [(w * random(), (h - 50) * random() + 50) for _ in range(int(points))]
+        self.pheremones = np.zeros((int(points), int(points)))
 
         self.path = [[choice(self.points)] for _ in range(ants)]
         self.to_visit = [deepcopy(self.points) for _ in range(ants)]
@@ -29,6 +30,7 @@ class ACO:
 
         self.font = pygame.font.SysFont('Comic Sans MS', 20)
         self.show_all = False
+        self.show_pheremones = False
 
     def display(self, screen):
         delta = round((datetime.now() - self.time).total_seconds(), 3)
@@ -48,8 +50,19 @@ class ACO:
             for path in self.path:
                 if len(path) >= 2:
                     pygame.draw.lines(screen, (0, 0, 0), False, path, 2)
+        
+        max_pheremone = np.max(self.pheremones)
+        if self.show_pheremones and max_pheremone > 0:
+            for x in range(len(self.pheremones)):
+                for y in range(len(self.pheremones)):
+                    if x == y:
+                        continue
 
-        if self.best_path:
+                    colour = int(205 * self.pheremones[x][y] / max_pheremone)
+                    if colour > 2:
+                        pygame.draw.line(screen, (50 + colour, 25, 25), self.points[x], self.points[y], 2)
+
+        if self.best_path and not self.show_pheremones:
             pygame.draw.lines(screen, (14, 17, 79), False, self.best_path, 2)
 
 
@@ -60,8 +73,10 @@ class ACO:
             if event.type == KEYDOWN:
                 if event.key == K_ESCAPE:
                     return True
-                if event.key == K_p:
+                if event.key == K_a:
                     self.show_all = not self.show_all
+                if event.key == K_p:
+                    self.show_pheremones = not self.show_pheremones
 
     def display_screen(self, screen):
         screen.fill((160, 160, 169))
@@ -137,7 +152,7 @@ class ACO:
             self.distances[ant] = distance
 
 
-def main():
+def main(ants, points, alpha, beta, diffusion_rate):
     pygame.init()
     pygame.font.init()
     pygame.display.set_caption("Ant Colony Optimisation")
@@ -150,7 +165,7 @@ def main():
 
     done = False
     clock = pygame.time.Clock()
-    aco = ACO(width, height, ants=50, points=50)
+    aco = ACO(width, height, ants=ants, points=points, alpha=alpha, beta=beta, diffusion_rate=diffusion_rate)
 
     while not done:
         done = aco.events()
@@ -161,4 +176,14 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    args = {'ants': 10, 'points': 25, 'alpha': 4, 'beta': 2, 'diffusion_rate': 0.05}
+
+    for arg in sys.argv[1:]:
+        try:
+            var, val = arg.split('=')
+            if var in args.keys():
+                args[var] = float(val)
+        except:
+            print("Incorrect argument: %s" % arg)
+
+    main(**args)
