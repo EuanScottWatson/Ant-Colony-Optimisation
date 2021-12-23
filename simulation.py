@@ -28,6 +28,7 @@ class ACO:
         self.time = datetime.now()
 
         self.font = pygame.font.SysFont('Comic Sans MS', 20)
+        self.show_all = False
 
     def display(self, screen):
         delta = round((datetime.now() - self.time).total_seconds(), 3)
@@ -43,8 +44,13 @@ class ACO:
         for p in self.points:
             pygame.draw.circle(screen, (0, 0, 0), (p[0], p[1]), 5, width=2)
 
+        if self.show_all:
+            for path in self.path:
+                if len(path) >= 2:
+                    pygame.draw.lines(screen, (0, 0, 0), False, path, 2)
+
         if self.best_path:
-            pygame.draw.lines(screen, (0, 0, 0), False, self.best_path, 2)
+            pygame.draw.lines(screen, (14, 17, 79), False, self.best_path, 2)
 
 
     def events(self):
@@ -54,9 +60,11 @@ class ACO:
             if event.type == KEYDOWN:
                 if event.key == K_ESCAPE:
                     return True
+                if event.key == K_p:
+                    self.show_all = not self.show_all
 
     def display_screen(self, screen):
-        screen.fill((255, 255, 255))
+        screen.fill((160, 160, 169))
 
         self.display(screen)
 
