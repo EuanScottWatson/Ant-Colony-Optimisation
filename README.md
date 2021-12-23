@@ -20,3 +20,9 @@ While running the code you can press one of three buttons:
 2. `p`: to view all the pheremone trails - the more red, the more intense
 3. `a`: to view all the ants paths of that generation
 The blue path is always the best path found so far.
+
+# Example
+In the two graphs below you can see how the best path diminishes with time, in these scenarios the number of ants and points were 50 and 25 then 100 and 50.
+
+![Stuff here](/graphs/graph_50_25.png)
+![alt text](/graphs/graph_100_50.png)

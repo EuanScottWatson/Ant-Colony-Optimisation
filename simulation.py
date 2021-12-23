@@ -3,8 +3,9 @@ from pygame.locals import *
 from random import random, choice
 from copy import deepcopy
 import numpy as np
-from datetime import datetime
+from datetime import date, datetime
 import sys
+import matplotlib.pyplot as plt
 
 
 class ACO:
@@ -31,6 +32,8 @@ class ACO:
         self.font = pygame.font.SysFont('Comic Sans MS', 20)
         self.show_all = False
         self.show_pheremones = False
+
+        self.stats = []
 
     def display(self, screen):
         delta = round((datetime.now() - self.time).total_seconds(), 3)
@@ -109,6 +112,8 @@ class ACO:
             self.to_visit[a].remove(self.path[a][0])
         self.generation += 1
 
+        self.stats.append(self.best_distance)
+
     def generate_pheremones(self):
         for x in range(len(self.pheremones)):
             for y in range(len(self.pheremones)):
@@ -174,9 +179,18 @@ def main(ants, points, alpha, beta, diffusion_rate):
 
         clock.tick(60)
 
+    plot(aco.stats)
+
+def plot(distances):
+    plt.plot(distances)
+    plt.xlabel("Generation Number")
+    plt.ylabel("Best Distance Seen")
+    plt.title("Best Path's Distance per Generation")
+    plt.show()
+
 
 if __name__ == "__main__":
-    args = {'ants': 10, 'points': 25, 'alpha': 4, 'beta': 2, 'diffusion_rate': 0.05}
+    args = {'ants': 10, 'points': 25, 'alpha': 4, 'beta': 1, 'diffusion_rate': 0.1}
 
     for arg in sys.argv[1:]:
         try:
