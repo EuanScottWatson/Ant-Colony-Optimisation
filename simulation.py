@@ -16,14 +16,17 @@ class ACO:
 
         self.ants = ants
         self.distances = [0 for _ in range(ants)]
+        # Generate points number of random points on the map, leaving space for statistics on top
         self.points = [(w * random(), (h - 50) * random() + 50) for _ in range(int(points))]
         self.pheremones = np.zeros((int(points), int(points)))
 
+        # Pick a random starting point for each ant and start their path lists
         self.path = [[choice(self.points)] for _ in range(ants)]
         self.to_visit = [deepcopy(self.points) for _ in range(ants)]
         for a in range(ants):
             self.to_visit[a].remove(self.path[a][0])
 
+        # Data for best seen so far
         self.best_path = None
         self.best_distance = float('inf')
         self.generation = 1
@@ -36,6 +39,7 @@ class ACO:
         self.stats = []
 
     def display(self, screen):
+        # Draw all the points and routes connecting them
         delta = round((datetime.now() - self.time).total_seconds(), 3)
 
         gen = self.font.render('Generation {0}'.format(self.generation), False, (0, 0, 0))
@@ -70,6 +74,7 @@ class ACO:
 
 
     def events(self):
+        # Handles user input
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return True
@@ -90,6 +95,7 @@ class ACO:
         pygame.display.flip()
 
     def run_logic(self):
+        # If gen in progress, do 1 step for each ant, otherwise update pheremones
         if not all(self.distances):
             for a in range(self.ants):
                 self.traverse(a)
@@ -98,6 +104,7 @@ class ACO:
             self.reset()
 
     def reset(self):
+        # Reset all the ant paths and check to see if a new better solution was found
         if (min(self.distances)) < self.best_distance:
             self.best_distance = min(self.distances)
             self.best_path = self.path[np.argmin(self.distances)]
@@ -112,8 +119,10 @@ class ACO:
             self.to_visit[a].remove(self.path[a][0])
         self.generation += 1
 
+        # Store stats for graphings
         self.stats.append(self.best_distance)
 
+    # Diffuses and updates pheremones for each path
     def generate_pheremones(self):
         for x in range(len(self.pheremones)):
             for y in range(len(self.pheremones)):
@@ -130,11 +139,13 @@ class ACO:
                 self.pheremones[b_index][a_index] += p
 
     def generate_roulette(self, curr, remaining):
+        # Pick which path to take based on a roulette wheel
         dist_weights = list(map(lambda x: (1 / self.distance(x, curr) ** self.alpha), remaining))
         dist_norm = [float(x) / max(dist_weights) for x in dist_weights]
 
         pheremone_weights = list(map(lambda x: self.pheremones[self.points.index(curr)][self.points.index(x)] ** self.beta, remaining))
 
+        # Weight depends on the pheremone strength and the distance
         weights = [a + b for (a, b) in zip(dist_norm, pheremone_weights)]
 
         total = sum(weights)
@@ -143,14 +154,18 @@ class ACO:
         return probabilities
 
     def distance(self, a, b):
+        # Calculate distance between two points, L2-norm
         return np.linalg.norm(np.array(a) / 10 - np.array(b) / 10)
 
     def traverse(self, ant):
+        # If there are still points to visit, determine which to go to next
         if len(self.to_visit[ant]) > 0:
             next_index = np.random.choice(range(len(self.to_visit[ant])), 1, p=self.generate_roulette(self.path[ant][-1], self.to_visit[ant]))[0]
             next = self.to_visit[ant][next_index]
             self.to_visit[ant].remove(next)
             self.path[ant].append(next)
+
+        # If all points found, determine length of path
         if len(self.path[ant]) == len(self.points):
             self.path[ant].append(self.path[ant][0])
             distance = sum(map(lambda x: self.distance(x[0], x[1]), zip(self.path[ant], self.path[ant][1:])))
@@ -182,6 +197,7 @@ def main(ants, points, alpha, beta, diffusion_rate):
     plot(aco.stats)
 
 def plot(distances):
+    # Plot the graph of best distance vs generation
     plt.plot(distances)
     plt.xlabel("Generation Number")
     plt.ylabel("Best Distance Seen")
@@ -192,6 +208,7 @@ def plot(distances):
 if __name__ == "__main__":
     args = {'ants': 10, 'points': 25, 'alpha': 4, 'beta': 1, 'diffusion_rate': 0.1}
 
+    # Accepts arguments in the form of: <arg_name>=<value>
     for arg in sys.argv[1:]:
         try:
             var, val = arg.split('=')
